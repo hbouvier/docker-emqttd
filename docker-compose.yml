@@ -1,0 +1,55 @@
+version: '2'
+
+services:
+  postgres:
+    image: postgres:9.5.2
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - PGDATA=/var/lib/postgresql/data/databases
+    networks:
+      - mqtt
+    ports:
+      - 5432:5432
+    volumes:
+    - /var/lib/containers/postgresql/data:/var/lib/postgresql/data
+
+  mqtt-master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hbouvier/emqttd
+    networks:
+      - mqtt
+    environment:
+      - POSTGRES=true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mqtt      
+    ports:
+      - 1883:1883
+      - 8883:8883
+      - 8083:8083
+      - 18083:18083
+  mqtt-provisioning:
+    build:
+      context: ./provisioning
+      dockerfile: Dockerfile
+    image: hbouvier/mqtt-provisioning
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mqtt
+    networks:
+      - mqtt
+
+networks:
+  mqtt:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.16.238.0/24
+        gateway: 172.16.238.254
+        ip-range: 172.16.238.0/24

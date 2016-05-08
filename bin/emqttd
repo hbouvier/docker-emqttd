@@ -1,0 +1,29 @@
+#!/bin/bash
+env
+sed -i 's/127.0.0.1/'$(hostname -i)'/g' /emqttd/etc/vm.args
+if [ ! -z ${POSTGRES} ] ; then
+	sed -i 's/POSTGRES_PORT_5432_TCP_ADDR/'${POSTGRES_PORT_5432_TCP_ADDR}'/g' /emqttd/plugins/emqttd_plugin_pgsql/etc/plugin.config
+	sed -i 's/POSTGRES_PORT_5432_TCP_PORT/'${POSTGRES_PORT_5432_TCP_PORT}'/g' /emqttd/plugins/emqttd_plugin_pgsql/etc/plugin.config
+	sed -i 's/POSTGRES_USER/'${POSTGRES_USER:-postgres}'/g' /emqttd/plugins/emqttd_plugin_pgsql/etc/plugin.config
+	sed -i 's/POSTGRES_PASSWORD/'${POSTGRES_PASSWORD:-postgres}'/g' /emqttd/plugins/emqttd_plugin_pgsql/etc/plugin.config
+	sed -i 's/POSTGRES_DB/'${POSTGRES_DB:-mqtt}'/g' /emqttd/plugins/emqttd_plugin_pgsql/etc/plugin.config
+
+	sed -i 's/%{username, \[]},/{username, []},/g' /emqttd/etc/emqttd.config
+fi
+
+/emqttd/bin/emqttd start
+sleep 5
+
+if [ ! -z ${POSTGRES} ] ; then
+	echo "emqttd: ACL managed using pgsql plugin"
+	/emqttd/bin/emqttd_ctl plugins load emqttd_plugin_pgsql
+fi
+
+sleep 1
+if [ -z ${EMQTTD_CLUSTER} ]; then
+	echo 'emqttd: Assuming this is a SINGLE/FIRST node'
+else
+	echo "emqttd: connecting to a CLUSTER, node ${EMQTTD_CLUSTER}"
+	/emqttd/bin/emqttd_ctl cluster emqttd@${EMQTTD_CLUSTER}
+fi
+sleep 10 && tail -f --retry /emqttd/log/*
