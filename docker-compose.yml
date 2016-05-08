@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: hbouvier/emqttd
+    image: automat/emqttd
     networks:
       - mqtt
     environment:
@@ -36,7 +36,7 @@ services:
     build:
       context: ./provisioning
       dockerfile: Dockerfile
-    image: hbouvier/mqtt-provisioning
+    image: automat/mqtt-provisioning
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
